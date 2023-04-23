@@ -8,7 +8,7 @@ export class PageInterceptor {
     }
 
     public async pageChange(callBack: (mutation: MutationRecord) => void): Promise<void> {
-        window.onload = () => {
+        window.addEventListener("load", ev => {
             let oldHref = document.location.href;
             const body = document.querySelector("body");
             const observer = new MutationObserver(mutations => {
@@ -21,6 +21,6 @@ export class PageInterceptor {
                 }
             });
             observer.observe(body, {childList: true, subtree: true});
-        };
+        }, true);
     }
 }

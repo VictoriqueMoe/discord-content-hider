@@ -60,7 +60,13 @@ class DiscordChatObserver {
         }
         const attachmentUrls = this._attachmentsManager.gatAttachmentsUrls(attachmentWrapper);
         for (const attachmentUrl of attachmentUrls) {
-            const fileSize = await this._attachmentsManager.getAttachmentFileSize(attachmentUrl);
+            let fileSize: number;
+            try {
+                fileSize = await this._attachmentsManager.getAttachmentFileSize(attachmentUrl);
+            } catch (e) {
+                console.warn(e);
+                continue;
+            }
             if (fileSize > this.MAX_CONTENT_SIZE || fileSize < 0) {
                 return false;
             }
@@ -128,7 +134,7 @@ class DiscordChatObserver {
             try {
                 fileSize = await this._attachmentsManager.getAttachmentFileSize(urlToBlock);
             } catch (e) {
-                alert((e as Error).message);
+                console.warn(e);
                 return;
             }
 
