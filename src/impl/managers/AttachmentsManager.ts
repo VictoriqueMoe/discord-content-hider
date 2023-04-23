@@ -1,5 +1,6 @@
 import {singleton} from "tsyringe";
-
+import {UiBuilder} from "../UiBuilder";
+import md5 = require("md5");
 
 export type Attachment = string
 
@@ -12,7 +13,10 @@ export enum AttachmentType {
 @singleton()
 export class AttachmentsManager {
 
-    public gatAttachments(attachmentWrapper: Element): Attachment[] {
+    public constructor(private _uiBuilder: UiBuilder) {
+    }
+
+    public gatAttachmentsUrls(attachmentWrapper: Element): Attachment[] {
         const attachments = attachmentWrapper.querySelectorAll(`[class^="messageAttachment"]`);
         if (!attachments || attachments.length === 0) {
             return [];
@@ -53,5 +57,30 @@ export class AttachmentsManager {
             return AttachmentType.BINARY;
         }
         return null
+    }
+
+    public async getAttachmentFileSize(url: string): Promise<number> {
+        this._uiBuilder.showLoading(true);
+        try {
+            const headCheck = await fetch(url, {
+                method: "HEAD"
+            });
+            const contentLengthStr = headCheck.headers.get("content-length");
+            if (!contentLengthStr) {
+                return -1;
+            }
+            return Number.parseInt(contentLengthStr);
+        } finally {
+            this._uiBuilder.showLoading(false);
+        }
+    }
+
+    public async getFileHash(url: string): Promise<string> {
+        const file = await fetch(url, {
+            method: "GET",
+        });
+        const buffer = await file.arrayBuffer();
+        const transformedBuffer = new Uint8Array(buffer);
+        return md5(transformedBuffer);
     }
 }
