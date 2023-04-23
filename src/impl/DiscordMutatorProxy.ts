@@ -2,6 +2,7 @@ import {container, singleton} from "tsyringe";
 import {PostConstruct} from "../decorators/PostConstruct";
 import {DiscordType, Observable} from "../decorators/DiscordMessageEvent";
 import type constructor from "tsyringe/dist/typings/types/constructor";
+import {waitForElm} from "../Utils";
 
 type ObserverRunnable = {
     method: Observable,
@@ -22,7 +23,7 @@ export class DiscordMutatorProxy {
     }
 
     private async onMessage(): Promise<void> {
-        const elm = await this.waitForElm('[data-list-id="chat-messages"]');
+        const elm = await waitForElm('[data-list-id="chat-messages"]');
         this.observerProxy = new MutationObserver((mutations, observer) => {
             for (const observable of this.observerList.get(DiscordType.NEW_MESSAGE)) {
                 const instanceContext = container.resolve(observable.context);
@@ -71,23 +72,4 @@ export class DiscordMutatorProxy {
 
     }
 
-    private waitForElm(selector: string): Promise<Element> {
-        return new Promise(resolve => {
-            if (document.querySelector(selector)) {
-                return resolve(document.querySelector(selector));
-            }
-
-            const observer = new MutationObserver(mutations => {
-                if (document.querySelector(selector)) {
-                    resolve(document.querySelector(selector));
-                    observer.disconnect();
-                }
-            });
-
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
-        });
-    }
 }

@@ -6,6 +6,7 @@ import {PageInterceptor} from "./impl/PageInterceptor";
 import {AttachmentsManager} from "./impl/managers/AttachmentsManager";
 import {UiBuilder} from "./impl/UiBuilder";
 import {LocalStoreManager} from "./impl/managers/LocalStoreManager";
+import {waitForElm} from "./Utils";
 
 @singleton()
 class DiscordChatObserver {
@@ -143,6 +144,7 @@ class DiscordChatObserver {
 
             const hash = await this._attachmentsManager.getFileHash(urlToBlock);
             this._localStoreManager.setHash(hash);
+            this.removeElm([selectedMessage]);
         });
 
         option.addEventListener("mouseenter", ev => {
@@ -179,6 +181,16 @@ class DiscordChatObserver {
             }
             this.removeElm(toRemove);
         });
+        const elm = await waitForElm('[data-list-id="chat-messages"]');
+        const chatEntries = elm.children;
+        const toRemove: Element[] = [];
+        for (let i = 0; i < chatEntries.length; i++) {
+            const entry = chatEntries[i] as HTMLElement;
+            if (await this.shouldRemove(entry)) {
+                toRemove.push(entry);
+            }
+        }
+        this.removeElm(toRemove);
     }
 }
 
