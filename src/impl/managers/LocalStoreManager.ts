@@ -20,7 +20,7 @@ export class LocalStoreManager {
     }
 
     public hashHash(hash: string): boolean {
-        return this.getAllHashes().includes(hash);
+        return this.getAllHashes()?.includes(hash) ?? false;
     }
 
     private getItm(): string[] | null {
