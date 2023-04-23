@@ -2,6 +2,7 @@ import {singleton} from "tsyringe";
 import {UiBuilder} from "../UiBuilder";
 import md5 = require("md5");
 
+const GM_fetch = require("@trim21/gm-fetch");
 export type Attachment = string
 
 export enum AttachmentType {
@@ -18,7 +19,8 @@ export class AttachmentsManager {
 
     public gatAttachmentsUrls(attachmentWrapper: Element): Attachment[] {
         const attachments = attachmentWrapper.querySelectorAll(`[class^="messageAttachment"]`);
-        if (!attachments || attachments.length === 0) {
+        const embeds = attachmentWrapper.querySelectorAll(`[class^="inlineMediaEmbed"]`);
+        if ((!attachments || attachments.length === 0) && (!embeds && embeds.length === 0)) {
             return [];
         }
         const retArr: Attachment[] = [];
@@ -40,7 +42,17 @@ export class AttachmentsManager {
                     break;
             }
         }
-        return retArr;
+        for (let i = 0; i < embeds.length; i++) {
+            const embed = embeds[i];
+            const videos = embed.querySelectorAll("video");
+            if (videos && videos.length > 0) {
+                videos.forEach(video => retArr.push(video.src));
+            } else {
+                const anchors = embed.querySelectorAll("a");
+                anchors.forEach(el => retArr.push(el.href));
+            }
+        }
+        return retArr.map(url => url.replace("media.discordapp.net", "cdn.discordapp.com"));
     }
 
     private detectAttachmentType(messageAttach: Element): AttachmentType | null {
@@ -62,7 +74,7 @@ export class AttachmentsManager {
     public async getAttachmentFileSize(url: string): Promise<number> {
         this._uiBuilder.showLoading(true);
         try {
-            const headCheck = await fetch(url, {
+            const headCheck = await GM_fetch(url, {
                 method: "HEAD"
             });
             const contentLengthStr = headCheck.headers.get("content-length");
@@ -76,10 +88,8 @@ export class AttachmentsManager {
     }
 
     public async getFileHash(url: string): Promise<string> {
-        const file = await fetch(url, {
-            method: "GET",
-        });
-        const buffer = await file.arrayBuffer();
+        const res = await GM_fetch(url, {method: "POST"});
+        const buffer = await res.arrayBuffer();
         const transformedBuffer = new Uint8Array(buffer);
         return md5(transformedBuffer);
     }

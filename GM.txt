@@ -3,9 +3,12 @@
 // @namespace    victorique.moe
 // @version      1.0.0
 // @description  Hides message that contain an image you don't want to see
+// @grant        GM.xmlHttpRequest
+// @grant        GM.getValue
+// @grant        GM.listValues
+// @grant        GM.setValue
 // @author       Victorique
 // @match        https://discord.com/channels/*
-// @grant        none
 // @run-at       document-idle
 // @icon         https://i.imgur.com/nx5ejHb.png
 // @license      MIT

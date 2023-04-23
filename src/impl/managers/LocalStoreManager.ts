@@ -5,34 +5,35 @@ export class LocalStoreManager {
 
     private readonly KEY = "HIDE_FILE_MANAGER";
 
-    public setHash(hash: string): void {
-        const storedHash = this.getItm();
+    public async setHash(hash: string): Promise<void> {
+        const storedHash = await this.getItm();
         if (!storedHash) {
-            this.setItm([hash]);
+            await this.setItm([hash]);
         } else {
             storedHash.push(hash);
-            this.setItm(storedHash);
+            await this.setItm(storedHash);
         }
     }
 
-    public getAllHashes(): string[] | null {
+    public getAllHashes(): Promise<string[] | null> {
         return this.getItm();
     }
 
-    public hashHash(hash: string): boolean {
-        return this.getAllHashes()?.includes(hash) ?? false;
+    public async hashHash(hash: string): Promise<boolean> {
+        const allHashes = await this.getAllHashes();
+        return allHashes?.includes(hash) ?? false;
     }
 
-    private getItm(): string[] | null {
-        const itmJson = window.localStorage.getItem(this.KEY);
+    private async getItm(): Promise<string[] | null> {
+        const itmJson = await GM.getValue(this.KEY) as string;
         if (!itmJson) {
             return null;
         }
         return JSON.parse(itmJson);
     }
 
-    private setItm(itm: string[]): void {
+    private async setItm(itm: string[]): Promise<void> {
         const json = JSON.stringify(itm);
-        window.localStorage.setItem(this.KEY, json);
+        await GM.setValue(this.KEY, json);
     }
 }

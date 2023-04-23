@@ -17,13 +17,6 @@ class DiscordChatObserver {
                        private _uiBuilder: UiBuilder,
                        private _localStoreManager: LocalStoreManager) {
         _uiBuilder.injectContent();
-
-        const myiframe = document.createElement("iframe");
-        myiframe.onload = () => {
-            window.localStorage = myiframe.contentWindow.localStorage;
-        };
-        myiframe.src = "about:blank";
-        document.body.appendChild(myiframe);
     }
 
     public removeElm(elms: Element[]): void {
@@ -49,16 +42,19 @@ class DiscordChatObserver {
     }
 
     private async shouldRemove(el: HTMLElement): Promise<boolean> {
+        const allHashes = await this._localStoreManager.getAllHashes();
+        if (!allHashes || allHashes.length === 0) {
+            return false;
+        }
         const msgId = el.id;
         if (!msgId.includes("chat-messages")) {
             return false;
         }
         const attachmentWrapper = el.querySelector('[id*="message-accessories-"]');
-        const attachments = attachmentWrapper.querySelectorAll(`[class^="messageAttachment"]`);
-        if (!attachments || attachments.length === 0) {
+        const attachmentUrls = this._attachmentsManager.gatAttachmentsUrls(attachmentWrapper);
+        if (!attachmentUrls || attachmentUrls.length === 0) {
             return false;
         }
-        const attachmentUrls = this._attachmentsManager.gatAttachmentsUrls(attachmentWrapper);
         for (const attachmentUrl of attachmentUrls) {
             let fileSize: number;
             try {
@@ -71,7 +67,7 @@ class DiscordChatObserver {
                 return false;
             }
             const hash = await this._attachmentsManager.getFileHash(attachmentUrl);
-            if (this._localStoreManager.hashHash(hash)) {
+            if (await this._localStoreManager.hashHash(hash)) {
                 return true;
             }
         }
@@ -97,8 +93,8 @@ class DiscordChatObserver {
         }
 
         const attachmentWrapper = selectedMessage.querySelector('[id*="message-accessories-"]');
-        const attachments = attachmentWrapper.querySelectorAll(`[class^="messageAttachment"]`);
-        if (!attachments || attachments.length === 0) {
+        const attachmentUrls = this._attachmentsManager.gatAttachmentsUrls(attachmentWrapper);
+        if (!attachmentUrls || attachmentUrls.length === 0) {
             return;
         }
 
@@ -109,7 +105,6 @@ class DiscordChatObserver {
             }
             let proceed = false;
             let idx = 0;
-            const attachmentUrls = this._attachmentsManager.gatAttachmentsUrls(attachmentWrapper);
             if (attachmentUrls.length > 1) {
                 const index = prompt("This message has multiple attachments, please enter the number you wish to block");
                 let num = Number.parseInt(index);
@@ -134,6 +129,7 @@ class DiscordChatObserver {
             try {
                 fileSize = await this._attachmentsManager.getAttachmentFileSize(urlToBlock);
             } catch (e) {
+                alert("Unable to load this attachment, there was an issue with CORS.");
                 console.warn(e);
                 return;
             }
@@ -149,7 +145,7 @@ class DiscordChatObserver {
             }
 
             const hash = await this._attachmentsManager.getFileHash(urlToBlock);
-            this._localStoreManager.setHash(hash);
+            await this._localStoreManager.setHash(hash);
             this.removeElm([selectedMessage]);
         });
 
@@ -177,7 +173,10 @@ class DiscordChatObserver {
     private async init(): Promise<void> {
         const pageInterceptor = container.resolve(PageInterceptor);
         await pageInterceptor.pageChange(async () => {
-            const chatContainer = document.querySelector('[data-list-id="chat-messages"]');
+            const chatContainer = await waitForElm('[data-list-id="chat-messages"]');
+            if(!chatContainer?.children){
+                return;
+            }
             const toRemove: Element[] = [];
             for (let i = 0; i < chatContainer.children.length; i++) {
                 const chatItem = chatContainer.children[i] as HTMLElement;
@@ -187,16 +186,6 @@ class DiscordChatObserver {
             }
             this.removeElm(toRemove);
         });
-        const elm = await waitForElm('[data-list-id="chat-messages"]');
-        const chatEntries = elm.children;
-        const toRemove: Element[] = [];
-        for (let i = 0; i < chatEntries.length; i++) {
-            const entry = chatEntries[i] as HTMLElement;
-            if (await this.shouldRemove(entry)) {
-                toRemove.push(entry);
-            }
-        }
-        this.removeElm(toRemove);
     }
 }
 

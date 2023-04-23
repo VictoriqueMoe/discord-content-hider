@@ -10,6 +10,7 @@ export class UiBuilder {
             return;
         }
         const css = this.buildCss();
+        const header = `<meta http-equiv="Content-Security-Policy" content="default-src 'self' *">`;
         document.getElementsByTagName('head')[0].appendChild(css);
         this.contentInjected = true;
     }
